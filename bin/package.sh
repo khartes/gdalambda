@@ -24,22 +24,19 @@ MINOR=${PYVERSION#*.}
 PYVER=${PYVERSION%%.*}.${MINOR%%.*}
 PYPATH=/usr/local/pyenv/versions/$PYVERSION/lib/python${PYVER}/site-packages/
 
-EXCLUDE="boto3* botocore* pip* docutils* *.pyc setuptools* wheel* coverage* testfixtures* mock* *.egg-info *.dist-info __pycache__ easy_install.py"
+EXCLUDE_DIRS="boto3* botocore* pip* docutils* setuptools* wheel* coverage* testfixtures* mock* *.egg-info *.dist-info __pycache__ test tests .pyi *.pyc easy_install.py"
 
-EXCLUDES=()
-for E in ${EXCLUDE}
-do
-    EXCLUDES+=("--exclude ${E} ")
+# Loop para excluir cada padrão
+for pattern in $EXCLUDE_DIRS; do
+    find "$PYPATH" -name "$pattern" -exec rm -rf {} \;
 done
 
-# Sync all Python packages except numpy and numpy.libs
+# Copy all Python packages except numpy and numpy.libs
 mkdir -p $DEPLOY_DIR/python
 cp -a $PYPATH/* $DEPLOY_DIR/python/
 rm -rf $DEPLOY_DIR/python/numpy*
 rm -rf $DEPLOY_DIR/python/numpy.libs*
 
-
-# rsync -ax $PYPATH/ $DEPLOY_DIR/python/ ${EXCLUDES[@]} --exclude 'numpy*' --exclude 'numpy.libs*'
 
 # zip up deploy package
 cd $DEPLOY_DIR
