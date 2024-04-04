@@ -12,6 +12,13 @@ cp -P ${PREFIX}/lib64/*.so* $DEPLOY_DIR/lib/
 
 strip $DEPLOY_DIR/lib/* || true
 
+#COPY GDAL Utilities
+mkdir -p $DEPLOY_DIR/bin
+
+# copy utilities
+cp -P ${PREFIX}/bin/gdal* $DEPLOY_DIR/bin/
+cp -P ${PREFIX}/bin/ogr* $DEPLOY_DIR/bin/
+
 # copy GDAL_DATA files over
 mkdir -p $DEPLOY_DIR/share
 rsync -ax $PREFIX/share/gdal $DEPLOY_DIR/share/
@@ -40,7 +47,7 @@ rm -rf $DEPLOY_DIR/python/numpy.libs*
 
 # zip up deploy package
 cd $DEPLOY_DIR
-zip --symlinks -ruq ../gdalambda.zip ./lib ./share
+zip --symlinks -ruq ../gdalambda.zip ./lib ./share ./bin
 
 # Zip up all Python packages except numpy and numpy.libs
 zip --symlinks -ruq ../gdalambda-python.zip ./python
