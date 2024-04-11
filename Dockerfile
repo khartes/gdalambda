@@ -215,8 +215,56 @@ RUN mkdir postgresql; \
     ./configure --prefix=$PREFIX --with-openssl --without-server; \
     make -j ${NPROC} install; \
     # Return to the previous directory and clean up
-    cd ../..; rm -rf postgresql;
+    cd ..; rm -rf postgresql;
 
+ENV \
+    HDF5_VERSION=1.14.3 \
+    NETCDF_VERSION=4.9.2 
+
+# Download and compile szip (for hdf)
+RUN \
+    mkdir szip; \
+    # Download and extract szip
+    wget -qO- https://support.hdfgroup.org/ftp/lib-external/szip/2.1.1/src/szip-2.1.1.tar.gz \
+        | tar xvz -C szip --strip-components=1; cd szip; \
+    # Configure szip
+    ./configure --prefix=$PREFIX; \
+    # Build and install szip
+    make -j ${NPROC} install; \
+    cd ..; rm -rf szip
+
+# Download and compile libhdf5 (Climate data driver) 
+RUN \
+    mkdir hdf5; \
+    wget -qO- https://support.hdfgroup.org/ftp/HDF5/releases/hdf5-${HDF5_VERSION%.*}/hdf5-${HDF5_VERSION}/src/hdf5-$HDF5_VERSION.tar.gz \
+        | tar xvz -C hdf5 --strip-components=1; cd hdf5/hdf5-$HDF5_VERSION; \
+    ./configure \
+        --prefix=$PREFIX \
+        --with-szlib=$PREFIX; \
+    make -j ${NPROC} install; \
+    cd ../..; rm -rf hdf5
+
+# Download and compile NetCDF (Climate data driver)
+RUN mkdir netcdf; \
+    # Download and extract NetCDF
+    wget -qO- https://github.com/Unidata/netcdf-c/archive/refs/tags/v$NETCDF_VERSION.tar.gz | tar xvz -C netcdf --strip-components=1; \
+    cd netcdf; \
+    mkdir build; \
+    cd build; \
+    # Configure NetCDF with CMake
+    cmake \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=$PREFIX \
+        -DCURL_INCLUDE_DIR=$PREFIX/include/curl \
+        -DCURL_LIBRARY=$PREFIX/lib/libcurl.so \
+        -DENABLE_DAP_4=ON \
+        -DCURL_LIBRARY=$PREFIX/lib/libcurl.so \
+        -DENABLE_NETCDF_4=ON \
+        ..; \
+    # Build and install NetCDF
+    cmake --build . --target install; \
+    # Return to the previous directory and clean up
+    cd ../..; rm -rf netcdf;
 
 # Download and compile GDAL
 RUN mkdir gdal; \
@@ -237,6 +285,9 @@ RUN mkdir gdal; \
         -DGDAL_USE_GEOS=ON \
         -DGEOS_LIBRARY=$PREFIX/lib64/libgeos.so \
         -DGEOS_INCLUDE_DIR=$PREFIX/include \
+        -DGDAL_USE_NETCDF=ON \
+        -DNETCDF_INCLUDE_DIR=$PREFIX/include \
+        -DNETCDF_LIBRARY=$PREFIX/lib64/libnetcdf.so \
         -DCFLAGS="-O2 -Os" \
         -DCXXFLAGS="-O2 -Os" \
         -DLDFLAGS="-Wl,-rpath,'\$\$ORIGIN'" \
@@ -253,7 +304,6 @@ WORKDIR /home/gdalambda
 
 # Copy the requirements file
 COPY requirements.txt ./
-
 # Install Python dependencies
 RUN export PYENV_ROOT="/usr/local/pyenv" && \
     export PATH="$PYENV_ROOT/bin:$PATH" && \
