@@ -277,7 +277,7 @@ RUN mkdir gdal; \
     # Configure GDAL with CMake
     cmake \
         -DBUILD_PYTHON_BINDINGS=OFF \
-        -DPROJ_LIBRARY=$PREFIX/libproj.so \
+        -DPROJ_LIBRARY=$PREFIX/lib/libproj.so \
         -DPROJ_INCLUDE_DIR=$PREFIX/include \
         -DGDAL_USE_POSTGRESQL=ON \
         -DPostgreSQL_LIBRARY_RELEASE=$PREFIX/lib/libpq.so \
@@ -308,9 +308,21 @@ COPY requirements.txt ./
 RUN export PYENV_ROOT="/usr/local/pyenv" && \
     export PATH="$PYENV_ROOT/bin:$PATH" && \
     eval "$(pyenv init --path)" && \
-    pip3 install -r requirements.txt ;
+    pip3 install --upgrade pip &&\    
+    pip3 install --upgrade 'setuptools>=67' wheel &&\
+    pip3 install --no-cache-dir --force-reinstall --no-build-isolation -r requirements.txt
+
+#this last 2 after the fixed it
+RUN export PYENV_ROOT="/usr/local/pyenv" && \
+    export PATH="$PYENV_ROOT/bin:$PATH" && \
+    eval "$(pyenv init --path)" && \
+    pip3 install numpy
+RUN export PYENV_ROOT="/usr/local/pyenv" && \
+    export PATH="$PYENV_ROOT/bin:$PATH" && \
+    eval "$(pyenv init --path)" && \
+    pip3 install --no-cache-dir --force-reinstall --no-build-isolation  gdal==3.8.4
 
 # Copy the package script
 COPY bin/* /usr/local/bin/
-
 RUN chmod +x /usr/local/bin/package.sh
+
