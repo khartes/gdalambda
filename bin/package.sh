@@ -32,8 +32,14 @@ PYVER=${PYVERSION%%.*}.${MINOR%%.*}
 PYPATH=/usr/local/pyenv/versions/$PYVERSION/
 # zip up gdalambda deploy package
 cd $DEPLOY_DIR
-cp -a $PYPATH/bin/* ./bin/
 zip --symlinks -ruq ../gdalambda.zip ./lib ./share ./bin
+
+EXCLUDE_DIRS="boto3* botocore* pip* docutils* setuptools* wheel* coverage* testfixtures* mock* *.egg-info *.dist-info __pycache__ test tests .pyi *.pyc easy_install.py"
+
+# Loop para excluir cada padrão
+for pattern in $EXCLUDE_DIRS; do
+    find "$PYPATH/lib/python${PYVER}/site-packages/" -name "$pattern" -exec rm -rf {} \;
+done
 
 
 # Create a separate zip file for numpy and numpy.libs
